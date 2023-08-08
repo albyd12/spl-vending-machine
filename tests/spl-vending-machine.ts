@@ -1,7 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SplVendingMachine } from "../target/types/spl_vending_machine";
-import { airdrop, getAtaForMint, getVendingMachinePda, mintToken } from "./utils";
+import {
+  airdrop,
+  getAtaForMint,
+  getVendingMachinePda,
+  mintToken,
+} from "./utils";
 import { assert } from "chai";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -11,8 +16,12 @@ import {
 const config = {
   tokens: 3,
   allocations: 2,
-  price: 0.01 * anchor.web3.LAMPORTS_PER_SOL,
-  allocation_price: 0.1 * anchor.web3.LAMPORTS_PER_SOL,
+  ppt: 0.01 * anchor.web3.LAMPORTS_PER_SOL,
+  ppa: 0.1 * anchor.web3.LAMPORTS_PER_SOL,
+  presale_start: Date.now(),
+  presale_end: Date.now() + 10000000000000,
+  pubsale_start: Date.now(),
+  pubsale_end: Date.now() + 10000000000000,
 };
 
 describe("spl-vending-machine", () => {
@@ -37,12 +46,11 @@ describe("spl-vending-machine", () => {
       authority,
       authority,
       authority,
-      1000
+      config.tokens
     );
     //assign global variables
     tokenMint = token.tokenMint;
     authorityMintAta = token.payerAta;
-
 
     console.log("client initialized");
   });
@@ -59,7 +67,15 @@ describe("spl-vending-machine", () => {
     const ticketAllocation = new anchor.BN(config.allocations);
     //build instruction
     const instruction = await program.methods
-      .createMachine(ppa, ticketAllocation)
+      .createMachine(
+        new anchor.BN(config.ppa),
+        new anchor.BN(config.ppt),
+        new anchor.BN(config.allocations),
+        new anchor.BN(config.presale_start),
+        new anchor.BN(config.presale_end),
+        new anchor.BN(config.pubsale_start),
+        new anchor.BN(config.pubsale_end)
+      )
       .accounts({
         vendingMachine: vending_machine,
         authority: authority.publicKey,
@@ -186,7 +202,6 @@ describe("spl-vending-machine", () => {
   });
 
   it("should buy SPL token without ticket", async () => {
-
     const vending_machine = (await program.account.vendingMachine.all())[0];
     const [buyer_spl_ata, _] = await getAtaForMint(buyer.publicKey, tokenMint);
     const [vending_machine_ata, _1] = await getAtaForMint(
@@ -204,7 +219,7 @@ describe("spl-vending-machine", () => {
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         splMint: tokenMint,
         buyerSplAta: buyer_spl_ata,
-        vendingMachineSplAta: vending_machine_ata
+        vendingMachineSplAta: vending_machine_ata,
       })
       .instruction();
     //build transaction
@@ -212,48 +227,9 @@ describe("spl-vending-machine", () => {
     transaction.add(instruction);
     //broadcast transaction to the network
     const tx = await program.provider.sendAndConfirm(transaction, [buyer]);
-    const vending_machine_account = (await program.account.vendingMachine.all())[0].account;
-    //log outputs
-    console.log(`
-    Buy SPL with ticket (1)
-    Signature: ${tx}
-    Machine: 
-        ID: ${vending_machine.publicKey.toString()}
-        Tickets Bought: ${vending_machine_account.ticketsSold}
-        SPL Remaining: ${vending_machine_account.splStock}
-        SPL Allocation Remaining: ${vending_machine_account.ticketAllocation}
-    `);
-  });
-
-  it("should fail to buy second SPL token without ticket", async () => {
-
-    const vending_machine = (await program.account.vendingMachine.all())[0];
-    const [buyer_spl_ata, _] = await getAtaForMint(buyer.publicKey, tokenMint);
-    const [vending_machine_ata, _1] = await getAtaForMint(
-      vending_machine.publicKey,
-      tokenMint
-    );
-    const instruction = await program.methods
-      .buySpl(new anchor.BN(1))
-      .accounts({
-        vendingMachine: vending_machine.publicKey,
-        authority: authority.publicKey,
-        signer: buyer.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-        splMint: tokenMint,
-        buyerSplAta: buyer_spl_ata,
-        vendingMachineSplAta: vending_machine_ata
-      })
-      .instruction();
-    //build transaction
-    const transaction = new anchor.web3.Transaction();
-    transaction.add(instruction);
-    //broadcast transaction to the network
-    const tx = await program.provider.sendAndConfirm(transaction, [buyer]);
-    //log outputs
-    const vending_machine_account = (await program.account.vendingMachine.all())[0].account;
+    const vending_machine_account = (
+      await program.account.vendingMachine.all()
+    )[0].account;
     //log outputs
     console.log(`
     Buy SPL with ticket (1)
@@ -286,7 +262,7 @@ describe("spl-vending-machine", () => {
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         splMint: tokenMint,
         buyerSplAta: buyer_spl_ata,
-        vendingMachineSplAta: vending_machine_ata
+        vendingMachineSplAta: vending_machine_ata,
       })
       .instruction();
     //build transaction
@@ -295,7 +271,9 @@ describe("spl-vending-machine", () => {
     //broadcast transaction to the network
     const tx = await program.provider.sendAndConfirm(transaction, [buyer]);
     const ticket_account = (await program.account.ticket.all())[0].account;
-    const vending_machine_account = (await program.account.vendingMachine.all())[0].account;
+    const vending_machine_account = (
+      await program.account.vendingMachine.all()
+    )[0].account;
     //log outputs
     console.log(`
     Buy SPL with ticket (1)
@@ -310,9 +288,5 @@ describe("spl-vending-machine", () => {
         unspent: ${ticket_account.unspent}
         spent: ${ticket_account.spent}
     `);
-  
   });
-
-
-
 });

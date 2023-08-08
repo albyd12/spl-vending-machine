@@ -17,21 +17,38 @@ mod spl_vending_machine {
     
     pub fn create_machine(
         ctx: Context<InitializeMachine>,
+
         ppa: u64,
+        ppt: u64,
+
         ticket_allocation: u64,
+
+        presale_start: i64,
+        presale_end: i64,
+        pubsale_start: i64,
+        pubsale_end: i64,
+
     ) -> Result<()> {
         
         let vending_machine = &mut ctx.accounts.vending_machine;
 
-        vending_machine.authority = ctx.accounts.authority.key();
-        vending_machine.spl_mint = ctx.accounts.spl_mint.key();
+        vending_machine.bump = *ctx.bumps.get("vending_machine").unwrap();
 
+        vending_machine.authority = ctx.accounts.authority.key();
+
+        vending_machine.spl_mint = ctx.accounts.spl_mint.key();
         vending_machine.spl_stock = 0;
+
         vending_machine.ticket_allocation = ticket_allocation;
         vending_machine.tickets_sold = 0;
 
         vending_machine.ppa = ppa;
-        vending_machine.bump = *ctx.bumps.get("vending_machine").unwrap();
+        vending_machine.ppt = ppt;
+
+        vending_machine.presale_start = presale_start;
+        vending_machine.presale_end = presale_end;
+        vending_machine.pubsale_start = pubsale_start;
+        vending_machine.pubsale_end = pubsale_end;
 
         //false by default
         vending_machine.ready = 0;
@@ -255,7 +272,7 @@ mod spl_vending_machine {
         token::transfer(transfer_token_ctx, amount)?; 
 
         Ok(())
-        }
+    }
  }
 
 
