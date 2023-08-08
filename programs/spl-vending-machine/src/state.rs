@@ -2,21 +2,14 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct VendingMachine {
+    pub bump: u8,
     pub authority: Pubkey,
-
     pub spl_mint: Pubkey, 
     pub spl_stock: u64,
-
     pub ticket_allocation: u64,
-    pub spent_ticket_allocation: u64,
-
+    pub tickets_sold: u64,
     pub ppa: u64,
     pub ppt: u64,
-
-    pub presale_start: i64,
-    pub presale_end: i64,
-    pub pubsale_start: i64,
-    pub pubsale_end: i64,
     pub ready: u8,
 }
 

@@ -12,4 +12,6 @@ pub enum VendingMachineError {
     NotEnoughFunds,
     #[msg("Not enough SPL tokens to fulfill purchase")]
     ShortSupply,
+    #[msg("Allocation tickets have sold out")]
+    NoTickets,
 }
